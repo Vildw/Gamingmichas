@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini Social App</title>
+  <script type="module">
+    // 👉 Import Firebase
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCKtJ4fPhsqkIuE1bCqs_4KUvDggpufOf8",
+  authDomain: "gamingmichas-a8792.firebaseapp.com",
+  projectId: "gamingmichas-a8792",
+  storageBucket: "gamingmichas-a8792.firebasestorage.app",
+  messagingSenderId: "319294897379",
+  appId: "1:319294897379:web:f86c29ced029dfd61399d6",
+  measurementId: "G-8FR4WC9C9V"
+};
+
+    // 🔧 Firebase starten
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // 🧠 Login/Register Logik
+    const registerForm = document.getElementById('registerForm');
+    const loginForm = document.getElementById('loginForm');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const postForm = document.getElementById('postForm');
+    const postsDiv = document.getElementById('posts');
+
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = e.target.email.value;
+      const password = e.target.password.value;
+      await createUserWithEmailAndPassword(auth, email, password);
+      alert('Registrierung erfolgreich!');
+    });
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = e.target.email.value;
+      const password = e.target.password.value;
+      await signInWithEmailAndPassword(auth, email, password);
+      alert('Login erfolgreich!');
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      signOut(auth);
+    });
+
+    // 🔄 Auth-Status beobachten
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('authSection').style.display = 'none';
+        document.getElementById('appSection').style.display = 'block';
+        loadPosts();
+      } else {
+        document.getElementById('authSection').style.display = 'block';
+        document.getElementById('appSection').style.display = 'none';
+      }
+    });
+
+    // 📝 Post speichern
+    postForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = e.target.text.value;
+      if (!text.trim()) return;
+      await addDoc(collection(db, 'posts'), {
+        text: text,
+        user: auth.currentUser.email,
+        time: new Date()
+      });
+      e.target.reset();
+      loadPosts();
+    });
+
+    // 📜 Posts laden
+    async function loadPosts() {
+      postsDiv.innerHTML = '';
+      const q = query(collection(db, 'posts'), orderBy('time', 'desc'));
+      const snapshot = await getDocs(q);
+      snapshot.forEach((doc) => {
+        const p = doc.data();
+        const div = document.createElement('div');
+        div.className = 'post';
+        div.textContent = `${p.user}: ${p.text}`;
+        postsDiv.appendChild(div);
+      });
+    }
+  </script>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; }
+    input, button, textarea { width: 100%; margin: 5px 0; padding: 8px; }
+    .post { background: #eee; margin: 5px 0; padding: 10px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>🗨️ Mini Social App</h1>
+
+  <section id="authSection">
+    <h2>Registrieren</h2>
+    <form id="registerForm">
+      <input type="email" name="email" placeholder="Email" required />
+      <input type="password" name="password" placeholder="Passwort" required />
+      <button type="submit">Registrieren</button>
+    </form>
+
+    <h2>Login</h2>
+    <form id="loginForm">
+      <input type="email" name="email" placeholder="Email" required />
+      <input type="password" name="password" placeholder="Passwort" required />
+      <button type="submit">Login</button>
+    </form>
+  </section>
+
+  <section id="appSection" style="display:none;">
+    <button id="logoutBtn">Logout</button>
+    <h2>Neuer Post</h2>
+    <form id="postForm">
+      <textarea name="text" placeholder="Was geht ab?" required></textarea>
+      <button type="submit">Posten</button>
+    </form>
+
+    <h2>Posts</h2>
+    <div id="posts"></div>
+  </section>
+</body>
+</html>
